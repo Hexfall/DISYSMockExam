@@ -17,10 +17,12 @@ var server Server
 func main() {
 	flag.Parse()
 	server = Server{
-		isLeader:   *target == "",
-		leaderAddr: *target,
-		selfAddr:   fmt.Sprintf(":%d", *port),
-		value:      -1,
+		isLeader:       *target == "",
+		leaderAddr:     *target,
+		selfAddr:       fmt.Sprintf(":%d", *port),
+		value:          -1,
+		replicaConns:   make(map[string]*grpc.ClientConn),
+		replicaClients: make(map[string]increment.IncrementServiceClient),
 	}
 
 	// gRPC set-up.
@@ -37,7 +39,7 @@ func main() {
 	increment.RegisterIncrementServiceServer(grpcServer, &server)
 
 	if *target != "" {
-		// TODO: Connect to leader node.
+		go server.JoinCluster()
 	}
 
 	if err := grpcServer.Serve(lis); err != nil {
