@@ -6,7 +6,8 @@ option go_package = "https://github.com/Hexfall/DISYSMockExam;increment";
 service IncrementService {
     // Client methods.
     rpc Increment(VoidMessage) returns (IncrementMessage);
-    rpc GetLeader(VoidMessage) returns (IpMessage);
+    rpc GetLeader(VoidMessage) returns (LeaderMessage);
+    rpc GetReplicas(VoidMessage) returns (ReplicaListMessage);
     //  Replica methods.
     rpc Join(IpMessage) returns (VoidMessage);
     rpc HeartBeat(VoidMessage) returns (VoidMessage);
@@ -21,6 +22,11 @@ message IncrementMessage {
 
 message IpMessage {
     string ip = 1;
+}
+
+message LeaderMessage {
+    string ip = 1;
+    bool isLeader = 2;
 }
 
 message ReplicaListMessage {

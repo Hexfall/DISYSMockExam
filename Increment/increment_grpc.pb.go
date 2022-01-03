@@ -20,7 +20,8 @@ const _ = grpc.SupportPackageIsVersion7
 type IncrementServiceClient interface {
 	// Client methods.
 	Increment(ctx context.Context, in *VoidMessage, opts ...grpc.CallOption) (*IncrementMessage, error)
-	GetLeader(ctx context.Context, in *VoidMessage, opts ...grpc.CallOption) (*IpMessage, error)
+	GetLeader(ctx context.Context, in *VoidMessage, opts ...grpc.CallOption) (*LeaderMessage, error)
+	GetReplicas(ctx context.Context, in *VoidMessage, opts ...grpc.CallOption) (*ReplicaListMessage, error)
 	//  Replica methods.
 	Join(ctx context.Context, in *IpMessage, opts ...grpc.CallOption) (*VoidMessage, error)
 	HeartBeat(ctx context.Context, in *VoidMessage, opts ...grpc.CallOption) (*VoidMessage, error)
@@ -44,9 +45,18 @@ func (c *incrementServiceClient) Increment(ctx context.Context, in *VoidMessage,
 	return out, nil
 }
 
-func (c *incrementServiceClient) GetLeader(ctx context.Context, in *VoidMessage, opts ...grpc.CallOption) (*IpMessage, error) {
-	out := new(IpMessage)
+func (c *incrementServiceClient) GetLeader(ctx context.Context, in *VoidMessage, opts ...grpc.CallOption) (*LeaderMessage, error) {
+	out := new(LeaderMessage)
 	err := c.cc.Invoke(ctx, "/increment.IncrementService/GetLeader", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *incrementServiceClient) GetReplicas(ctx context.Context, in *VoidMessage, opts ...grpc.CallOption) (*ReplicaListMessage, error) {
+	out := new(ReplicaListMessage)
+	err := c.cc.Invoke(ctx, "/increment.IncrementService/GetReplicas", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +96,8 @@ func (c *incrementServiceClient) SendReplicas(ctx context.Context, in *ReplicaLi
 type IncrementServiceServer interface {
 	// Client methods.
 	Increment(context.Context, *VoidMessage) (*IncrementMessage, error)
-	GetLeader(context.Context, *VoidMessage) (*IpMessage, error)
+	GetLeader(context.Context, *VoidMessage) (*LeaderMessage, error)
+	GetReplicas(context.Context, *VoidMessage) (*ReplicaListMessage, error)
 	//  Replica methods.
 	Join(context.Context, *IpMessage) (*VoidMessage, error)
 	HeartBeat(context.Context, *VoidMessage) (*VoidMessage, error)
@@ -101,8 +112,11 @@ type UnimplementedIncrementServiceServer struct {
 func (UnimplementedIncrementServiceServer) Increment(context.Context, *VoidMessage) (*IncrementMessage, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Increment not implemented")
 }
-func (UnimplementedIncrementServiceServer) GetLeader(context.Context, *VoidMessage) (*IpMessage, error) {
+func (UnimplementedIncrementServiceServer) GetLeader(context.Context, *VoidMessage) (*LeaderMessage, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetLeader not implemented")
+}
+func (UnimplementedIncrementServiceServer) GetReplicas(context.Context, *VoidMessage) (*ReplicaListMessage, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetReplicas not implemented")
 }
 func (UnimplementedIncrementServiceServer) Join(context.Context, *IpMessage) (*VoidMessage, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Join not implemented")
@@ -158,6 +172,24 @@ func _IncrementService_GetLeader_Handler(srv interface{}, ctx context.Context, d
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(IncrementServiceServer).GetLeader(ctx, req.(*VoidMessage))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IncrementService_GetReplicas_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(VoidMessage)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IncrementServiceServer).GetReplicas(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/increment.IncrementService/GetReplicas",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IncrementServiceServer).GetReplicas(ctx, req.(*VoidMessage))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -230,6 +262,10 @@ var IncrementService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetLeader",
 			Handler:    _IncrementService_GetLeader_Handler,
+		},
+		{
+			MethodName: "GetReplicas",
+			Handler:    _IncrementService_GetReplicas_Handler,
 		},
 		{
 			MethodName: "Join",
