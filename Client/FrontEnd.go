@@ -19,8 +19,17 @@ type FrontEnd struct {
 func (fe *FrontEnd) Increment() int64 {
 	mes, err := fe.client.Increment(fe.ctx, &increment.VoidMessage{})
 	if err != nil {
-		log.Fatalf("Failed to increment value. Error: %v", err)
+		log.Printf("Failed to increment value. Error: %v", err)
+		log.Println("Assuming connection lost to cluster leader.")
+		if len(fe.backups) > 0 {
+			log.Println("Attempting to reconnect to cluster through other entry-point.")
+			fe.Connect(fe.backups[0])
+			return fe.Increment()
+		} else {
+			log.Fatalln("No other replicas known. Terminating program.")
+		}
 	}
+	go fe.GetReplicas()
 	return mes.Number
 }
 
