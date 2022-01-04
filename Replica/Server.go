@@ -45,18 +45,18 @@ func CreateClient(ip string) (*grpc.ClientConn, increment.IncrementServiceClient
 
 func (s *Server) BroadcastReplicas() {
 	for _, cli := range s.replicaClients {
-		go s.SendReplicasToReplica(&cli)
+		go s.SendReplicasToReplica(cli)
 	}
 }
 
 func (s *Server) BroadcastValue() {
 	for _, cli := range s.replicaClients {
-		go s.SendValueToReplica(&cli)
+		go s.SendValueToReplica(cli)
 	}
 }
 
-func (s *Server) SendReplicasToReplica(client *increment.IncrementServiceClient) {
-	_, err := (*client).SendReplicas(context.Background(), &increment.ReplicaListMessage{Ips: s.replicas})
+func (s *Server) SendReplicasToReplica(client increment.IncrementServiceClient) {
+	_, err := client.SendReplicas(context.Background(), &increment.ReplicaListMessage{Ips: s.replicas})
 	if err == context.DeadlineExceeded {
 		// Timed out, attempting to send replicas to replica.
 		// TODO: Do something.
@@ -65,8 +65,8 @@ func (s *Server) SendReplicasToReplica(client *increment.IncrementServiceClient)
 	}
 }
 
-func (s *Server) SendValueToReplica(client *increment.IncrementServiceClient) {
-	_, err := (*client).SendValue(context.Background(), &increment.IncrementMessage{Number: s.value})
+func (s *Server) SendValueToReplica(client increment.IncrementServiceClient) {
+	_, err := client.SendValue(context.Background(), &increment.IncrementMessage{Number: s.value})
 	if err == context.DeadlineExceeded {
 		// Timed out, attempting to send replicas to replica.
 		// TODO: Do something. Or leave alone and let HeartBeat monitor take care of it, eventually.
@@ -206,7 +206,7 @@ func (s *Server) Join(ctx context.Context, ipMessage *increment.IpMessage) (*inc
 
 	// Send replicas and value.
 	go s.BroadcastReplicas()
-	go s.SendValueToReplica(&cli)
+	go s.SendValueToReplica(cli)
 	// Monitor heartbeat.
 	go s.HeartbeatMonitor(ipMessage.Ip, cli)
 
@@ -235,6 +235,7 @@ func (s *Server) SendValue(ctx context.Context, incrementMessage *increment.Incr
 	}
 	// Should really check whether sender is leader, somehow.
 	s.value = incrementMessage.Number
+	log.Printf("Value has been set to %d by leader.\n", incrementMessage.Number)
 
 	return &increment.VoidMessage{}, nil
 }
